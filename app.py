@@ -29,9 +29,10 @@ CORS(app)
 HEADERS = {
     'Content-Type': 'application/json',
     'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}' 
+    'Authorization': f'Bearer {SUPABASE_KEY}',
+    # 🚨 关键修正：添加此行以强制 Supabase 返回插入的数据 🚨
+    'Prefer': 'return=representation' 
 }
-
 # --- 辅助函数：封装 Supabase 请求 ---
 
 def supabase_fetch(method, module_id, params=None, json_data=None):
@@ -162,27 +163,34 @@ def add_card(module_id):
     """POST /api/mod1/cards"""
     try:
         new_card_data = request.json
-        card_id = new_card_data.get('cardid')
+        # 1. 确保使用小写 'cardid'
+        card_id = new_card_data.get('cardid') 
         
         if not card_id:
+            import time
             card_id = f"{module_id}_card_{int(time.time())}"
             new_card_data['cardid'] = card_id
 
-        # 准备插入 Supabase 的格式
         data_to_insert = {
             'cardid': card_id,
             'data': new_card_data
         }
 
-        # 1. 插入数据
+        # 2. 插入数据 (Supabase 默认返回插入的记录)
         result = supabase_fetch('POST', module_id, json_data=data_to_insert)
         
-        # 2. 转换并返回新卡片
-        new_card = transform_from_supabase(result)[0]
+        # 🚨 安全检查：确保 Supabase 返回了记录 🚨
+        if not result or len(result) == 0:
+            # RLS 阻止了 INSERT 或阻止了返回数据
+            raise Exception("Supabase 插入卡片失败。请检查 RLS 策略或数据库唯一约束。")
+        
+        # 3. 转换并返回新卡片 (注意使用小写 'cardid' 的转换)
+        new_card = {**result[0]['data'], 'cardid': result[0]['cardid']} 
         
         return jsonify({"success": True, "card": new_card}), 201
 
     except Exception as e:
+        # 这个错误将会是您在第二个弹窗中看到的错误
         return jsonify({"success": False, "error": str(e)}), 500
 
 # 3. PUT: 更新卡片 (对应 updateCard)
@@ -276,11 +284,11 @@ def import_cards(module_id):
             return jsonify({'error': '导入数据必须是 JSON 数组'}), 400
 
         # 1. 清空当前 Supabase 表
-        supabase_fetch('DELETE', module_id, params={'cardId': 'not.is.null'})
+        supabase_fetch('DELETE', module_id, params={'cardid': 'not.is.null'})
 
         # 2. 批量插入新数据
         data_to_insert = [
-            {'cardId': card.get('cardId'), 'data': card}
+            {'cardid': card.get('cardid'), 'data': card}
             for card in cards_to_import
         ]
 
@@ -289,7 +297,7 @@ def import_cards(module_id):
                 f"{SUPABASE_URL}/rest/v1/{MODULE_TO_TABLE[module_id]}",
                 headers=HEADERS,
                 json=data_to_insert,
-                params={'on_conflict': 'cardId'}
+                params={'on_conflict': 'cardid'}
             ).raise_for_status()
 
 
