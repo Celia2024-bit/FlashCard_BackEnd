@@ -132,18 +132,38 @@ def get_all_cards(module_id):
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+
 # 2. POST: 添加新卡片 (对应 addCard)
 @app.route('/api/<module_id>/cards', methods=['POST'])
 def add_card(module_id):
     """POST /api/mod1/cards"""
     try:
         new_card_data = request.json
-        # 1. 确保使用小写 'cardid'
         card_id = new_card_data.get('cardid') 
         
         if not card_id:
-            import time
-            card_id = f"{module_id}_card_{int(time.time())}"
+            # 🔥 智能逻辑：找出现有卡片中最大的编号
+            existing_cards = supabase_fetch(
+                'GET', 
+                module_id, 
+                params={'select': 'cardid'}
+            )
+            
+            # 提取所有编号
+            max_number = 0
+            for card in existing_cards:
+                card_id_str = card.get('cardid', '')
+                # 解析格式如 "mod2_card_10" 中的数字
+                if card_id_str.startswith(f"{module_id}_card_"):
+                    try:
+                        number = int(card_id_str.split('_')[-1])
+                        max_number = max(max_number, number)
+                    except ValueError:
+                        pass
+            
+            # 生成新的编号（最大编号 + 1）
+            next_number = max_number + 1
+            card_id = f"{module_id}_card_{next_number}"
             new_card_data['cardid'] = card_id
 
         data_to_insert = {
@@ -151,21 +171,17 @@ def add_card(module_id):
             'data': new_card_data
         }
 
-        # 2. 插入数据 (Supabase 默认返回插入的记录)
+        # 插入数据
         result = supabase_fetch('POST', module_id, json_data=data_to_insert)
         
-        # 🚨 安全检查：确保 Supabase 返回了记录 🚨
         if not result or len(result) == 0:
-            # RLS 阻止了 INSERT 或阻止了返回数据
             raise Exception("Supabase 插入卡片失败。请检查 RLS 策略或数据库唯一约束。")
         
-        # 3. 转换并返回新卡片 (注意使用小写 'cardid' 的转换)
         new_card = {**result[0]['data'], 'cardid': result[0]['cardid']} 
         
         return jsonify({"success": True, "card": new_card}), 201
 
     except Exception as e:
-        # 这个错误将会是您在第二个弹窗中看到的错误
         return jsonify({"success": False, "error": str(e)}), 500
 
 # 3. PUT: 更新卡片 (对应 updateCard)
