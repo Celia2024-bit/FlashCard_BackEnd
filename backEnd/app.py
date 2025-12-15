@@ -4,36 +4,11 @@ from flask_cors import CORS
 import os
 import json
 import time
-
-# ==========================================================
-# 🚨 关键配置区域 (已使用您提供的正确配置) 🚨
-# ==========================================================
-
-# 1. 您的 Supabase 项目 URL
-SUPABASE_URL = "https://aefuqtzueqwjfhebfhrg.supabase.co" 
-
-# 2. 您的 Supabase Anon Public Key (现已修正)
-SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImFlZnVxdHp1ZXF3amZoZWJmaHJnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjU3MjkxODEsImV4cCI6MjA4MTMwNTE4MX0.ydj2OKZX9ciJXXaStoXDqWXzG_xxyy7w-EXn2IooAfA" 
-
-# --- 内部配置 ---
-MODULE_TO_TABLE = {
-    'mod1': 'mod1_cards', # Supabase 表名
-    'mod2': 'mod2_cards', # Supabase 表名
-}
+from config import SUPABASE_URL, SUPABASE_KEY, MODULE_TO_TABLE, HEADERS
 
 # --- Flask 应用初始化 ---
 app = Flask(__name__)
-CORS(app) 
-
-# --- 请求头：包含 Supabase 认证信息 ---
-HEADERS = {
-    'Content-Type': 'application/json',
-    'apikey': SUPABASE_KEY,
-    'Authorization': f'Bearer {SUPABASE_KEY}',
-    # 🚨 关键修正：添加此行以强制 Supabase 返回插入的数据 🚨
-    'Prefer': 'return=representation' 
-}
-# --- 辅助函数：封装 Supabase 请求 ---
+CORS(app)
 
 def supabase_fetch(method, module_id, params=None, json_data=None):
     """
