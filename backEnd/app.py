@@ -84,7 +84,7 @@ def initialize_data(module_id):
         check_response = requests.get(
             f"{SUPABASE_URL}/rest/v1/{table_name}",
             headers=HEADERS,
-            params={'select': 'id', 'limit': 1} # 只获取 'id' 字段的一条记录
+            params={'select': 'cardid', 'limit': 1} # 只获取 'cardid' 字段的一条记录
         )
         check_response.raise_for_status()
         
