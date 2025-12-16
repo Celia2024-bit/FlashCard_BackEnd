@@ -14,7 +14,7 @@ SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJ
 
 # --- SRS 配置 ---
 # TODAY 用于 SRS 计算的基准日，在生产环境应为 date.today()
-TODAY = date(2025, 12, 11) 
+TODAY = date.today()
 A_THRESHOLD = 30 # 应用饥渴因子阈值
 K_TARGET = 5     # 每日必用模块目标数量
 
