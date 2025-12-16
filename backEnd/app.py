@@ -249,7 +249,7 @@ def add_card(module_id):
         initial_ci = 5
         initial_lrd = (TODAY - timedelta(days=5)).isoformat()
         initial_lad = (TODAY - timedelta(days=1)).isoformat()
-        initial_is_core = 0
+        initial_is_core = 1
         
         # ⭐ 插入数据时包含 SRS 字段
         data_to_insert = {
@@ -405,7 +405,14 @@ def get_today_cards(module_id):
         # 1. 从 Supabase 读取数据
         cards = get_all_cards_srs_state_supabase(module_id)
         
+        # 🔍 调试打印：看看数据库一共吐出来多少东西
+        print(f"\n--- 🔍 SRS 调试开始 ({module_id}) ---")
+        print(f"1. 数据库总卡片数: {len(cards) if cards else 0}")
+        if cards and len(cards) > 0:
+            print(f"   第一张卡片样例: {cards[0]}") # 检查字段名是否为 CI, LRD 等
+
         if not cards:
+            print("⚠️ 警告: 数据库返回为空")
             return jsonify({
                 "success": False,
                 "error": "没有找到卡片数据"
@@ -414,19 +421,27 @@ def get_today_cards(module_id):
         # 2. 调用 SRS 算法生成今日清单
         today_cards = generate_must_use_list(cards)
         
+        # 🔍 调试打印：看看算法过滤后剩下多少
+        print(f"2. 经过算法过滤后的今日必学数: {len(today_cards)}")
+        
         # 3. 返回结果
         result = []
         for card in today_cards:
             p_score = calculate_priority_score_P(card)
+            # 🔍 打印每一张入选卡片的详情，确认字段匹配
+            print(f"   ✅ 入选: {card.get('card_id')} | CI: {card.get('CI')} | Score: {p_score}")
+            
             result.append({
                 "card_id": card['card_id'],
                 "title": card['key_module'],
                 "p_score": p_score,
                 "ci": card['CI'],
-                "lrd": card['LRD'].isoformat(),
-                "lad": card['LAD'].isoformat(),
+                "lrd": card['LRD'].isoformat() if hasattr(card['LRD'], 'isoformat') else str(card['LRD']),
+                "lad": card['LAD'].isoformat() if hasattr(card['LAD'], 'isoformat') else str(card['LAD']),
                 "is_core": card['is_core']
             })
+        
+        print(f"--- 🔍 SRS 调试结束 ---\n")
         
         return jsonify({
             "success": True,
@@ -436,7 +451,9 @@ def get_today_cards(module_id):
         }), 200
         
     except Exception as e:
-        print(f"❌ 后端报错: {str(e)}") # 这行会在控制台告诉你到底哪里错了
+        import traceback
+        print(f"❌ 后端报错: {str(e)}")
+        traceback.print_exc() # 打印完整的错误堆栈，精确定位哪一行崩了
         return jsonify({
             "success": False,
             "error": str(e)
