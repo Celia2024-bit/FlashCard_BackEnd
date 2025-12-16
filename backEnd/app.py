@@ -13,6 +13,79 @@ from srs_calculator_supabase import (
     calculate_priority_score_P
 )
 
+
+# ==========================================================
+# SRS 算法后端函数（自动计算 ic, lrd, lad）
+# ==========================================================
+
+def get_all_cards_srs_state_supabase(module_id='mod1'):
+    """从 Supabase 读取所有卡片的 SRS 状态"""
+    try:
+        records = supabase_fetch(
+            'GET',
+            module_id,
+            params={'select': 'cardid,data,ci,lrd,lad,is_core,rc'}
+        )
+        
+        card_list = []
+        for record in records:
+            card_data = record.get('data', {})
+            
+            card_dict = {
+                'card_id': record.get('cardid'),
+                'id': record.get('cardid'),
+                'key_module': card_data.get('title', ''),
+                'CI': record.get('ci') or 5,
+                'LRD': date.fromisoformat(record.get('lrd')) if record.get('lrd') else date.today(),
+                'LAD': date.fromisoformat(record.get('lad')) if record.get('lad') else date.today(),
+                'is_core': bool(record.get('is_core', 0)),
+                'referenceCount': record.get('rc') or 0
+            }
+            
+            card_list.append(card_dict)
+        
+        return card_list
+        
+    except Exception as e:
+        print(f"❌ 读取 SRS 状态时出错: {e}")
+        return []
+
+
+def update_card_srs_state_supabase(module_id, card_id, ci, lrd, lad, is_core,rc=None):
+    """将 SRS 算法计算后的新状态写回 Supabase"""
+    try:
+        lrd_str = lrd.isoformat() if hasattr(lrd, 'isoformat') else str(lrd)
+        lad_str = lad.isoformat() if hasattr(lad, 'isoformat') else str(lad)
+        
+        data_to_update = {
+            'ci': ci,
+            'lrd': lrd_str,
+            'lad': lad_str,
+            'is_core': 1 if is_core else 0
+        }
+        
+        if rc is not None:
+            data_to_update['rc'] = rc
+         
+        result = supabase_fetch(
+            'PATCH',
+            module_id,
+            params={'cardid': f'eq.{card_id}'},
+            json_data=data_to_update
+        )
+        
+        if result and len(result) > 0:
+            print(f"💾 卡片 {card_id} SRS 状态已更新: CI={ci}, LRD={lrd_str}, LAD={lad_str}")
+            return True
+        else:
+            print(f"❌ 更新失败：未找到卡片 {card_id}")
+            return False
+            
+    except Exception as e:
+        print(f"❌ 更新 SRS 状态时出错: {e}")
+        return False
+
+
 # --- Flask 应用初始化 ---
 app = Flask(__name__)
 CORS(app)
@@ -177,7 +250,6 @@ def add_card(module_id):
         initial_lrd = (TODAY - timedelta(days=5)).isoformat()
         initial_lad = (TODAY - timedelta(days=1)).isoformat()
         initial_is_core = 0
-        reference = 0
         
         # ⭐ 插入数据时包含 SRS 字段
         data_to_insert = {
@@ -187,7 +259,7 @@ def add_card(module_id):
             'lrd': initial_lrd,         # ⭐ 添加初始复习日期
             'lad': initial_lad,         # ⭐ 添加初始应用日期
             'is_core': initial_is_core,   # ⭐ 添加核心标记
-            'rc' :  reference
+            'rc' :  0
         }
 
         # 插入数据
@@ -364,6 +436,7 @@ def get_today_cards(module_id):
         }), 200
         
     except Exception as e:
+        print(f"❌ 后端报错: {str(e)}") # 这行会在控制台告诉你到底哪里错了
         return jsonify({
             "success": False,
             "error": str(e)
@@ -428,77 +501,6 @@ def use_card(module_id, card_id):
 
 if __name__ == '__main__':
     app.run(debug=False, port=5000)
-
-# ==========================================================
-# SRS 算法后端函数（自动计算 ic, lrd, lad）
-# ==========================================================
-
-def get_all_cards_srs_state_supabase(module_id='mod1'):
-    """从 Supabase 读取所有卡片的 SRS 状态"""
-    try:
-        records = supabase_fetch(
-            'GET',
-            module_id,
-            params={'select': 'cardid,data,ic,lrd,lad,is_core,rc'}
-        )
-        
-        card_list = []
-        for record in records:
-            card_data = record.get('data', {})
-            
-            card_dict = {
-                'card_id': record.get('cardid'),
-                'id': record.get('cardid'),
-                'key_module': card_data.get('title', ''),
-                'CI': record.get('ic') or 5,
-                'LRD': date.fromisoformat(record.get('lrd')) if record.get('lrd') else date.today(),
-                'LAD': date.fromisoformat(record.get('lad')) if record.get('lad') else date.today(),
-                'is_core': bool(record.get('is_core', 0)),
-                'referenceCount': record.get('rc') or 0
-            }
-            
-            card_list.append(card_dict)
-        
-        return card_list
-        
-    except Exception as e:
-        print(f"❌ 读取 SRS 状态时出错: {e}")
-        return []
-
-
-def update_card_srs_state_supabase(module_id, card_id, ci, lrd, lad, is_core,rc=None):
-    """将 SRS 算法计算后的新状态写回 Supabase"""
-    try:
-        lrd_str = lrd.isoformat() if hasattr(lrd, 'isoformat') else str(lrd)
-        lad_str = lad.isoformat() if hasattr(lad, 'isoformat') else str(lad)
-        
-        data_to_update = {
-            'ic': ci,
-            'lrd': lrd_str,
-            'lad': lad_str,
-            'is_core': 1 if is_core else 0
-        }
-        
-        if rc is not None:
-            data_to_update['rc'] = rc
-         
-        result = supabase_fetch(
-            'PATCH',
-            module_id,
-            params={'cardid': f'eq.{card_id}'},
-            json_data=data_to_update
-        )
-        
-        if result and len(result) > 0:
-            print(f"💾 卡片 {card_id} SRS 状态已更新: CI={ci}, LRD={lrd_str}, LAD={lad_str}")
-            return True
-        else:
-            print(f"❌ 更新失败：未找到卡片 {card_id}")
-            return False
-            
-    except Exception as e:
-        print(f"❌ 更新 SRS 状态时出错: {e}")
-        return False
 
 
 # ==========================================================
