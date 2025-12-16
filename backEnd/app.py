@@ -186,7 +186,7 @@ def add_card(module_id):
             'ic': initial_ci,           # ⭐ 添加初始间隔
             'lrd': initial_lrd,         # ⭐ 添加初始复习日期
             'lad': initial_lad,         # ⭐ 添加初始应用日期
-            'is_core': initial_is_core  # ⭐ 添加核心标记
+            'is_core': initial_is_core,   # ⭐ 添加核心标记
             'rc' :  reference
         }
 
