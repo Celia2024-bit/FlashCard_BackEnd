@@ -177,6 +177,7 @@ def add_card(module_id):
         initial_lrd = (TODAY - timedelta(days=5)).isoformat()
         initial_lad = (TODAY - timedelta(days=1)).isoformat()
         initial_is_core = 0
+        reference = 0
         
         # ⭐ 插入数据时包含 SRS 字段
         data_to_insert = {
@@ -186,6 +187,7 @@ def add_card(module_id):
             'lrd': initial_lrd,         # ⭐ 添加初始复习日期
             'lad': initial_lad,         # ⭐ 添加初始应用日期
             'is_core': initial_is_core  # ⭐ 添加核心标记
+            'rc' :  reference
         }
 
         # 插入数据
