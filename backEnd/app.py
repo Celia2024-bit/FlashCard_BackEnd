@@ -275,7 +275,8 @@ def add_card(module_id):
             'ic': result[0]['ic'],
             'lrd': result[0]['lrd'],
             'lad': result[0]['lad'],
-            'is_core': result[0]['is_core']
+            'is_core': result[0]['is_core'],
+            'rc' : result[0]['rc']
         }
         
         print(f"✅ 新卡片 {card_id} 已添加，初始 SRS 状态: CI={initial_ci}, LRD={initial_lrd}, LAD={initial_lad}")
