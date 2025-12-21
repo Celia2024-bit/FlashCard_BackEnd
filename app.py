@@ -15,7 +15,7 @@ from srs_calculator_supabase import (
 
 
 # ==========================================================
-# SRS 算法后端函数（自动计算 ic, lrd, lad）
+# SRS 算法后端函数（自动计算 ci, lrd, lad）
 # ==========================================================
 
 def get_all_cards_srs_state_supabase(module_id='mod1'):
@@ -255,7 +255,7 @@ def add_card(module_id):
         data_to_insert = {
             'cardid': card_id,
             'data': new_card_data,
-            'ic': initial_ci,           # ⭐ 添加初始间隔
+            'ci': initial_ci,           # ⭐ 添加初始间隔
             'lrd': initial_lrd,         # ⭐ 添加初始复习日期
             'lad': initial_lad,         # ⭐ 添加初始应用日期
             'is_core': initial_is_core,   # ⭐ 添加核心标记
@@ -272,7 +272,7 @@ def add_card(module_id):
         new_card = {
             **result[0]['data'], 
             'cardid': result[0]['cardid'],
-            'ic': result[0]['ic'],
+            'ci': result[0]['ci'],
             'lrd': result[0]['lrd'],
             'lad': result[0]['lad'],
             'is_core': result[0]['is_core'],
